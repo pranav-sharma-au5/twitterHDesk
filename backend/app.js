@@ -38,33 +38,33 @@ app.use(
     rolling: true
   })
 );
-const userActivityWebhook = twitterWebhooks.userActivity({
-  serverUrl: 'https://5dd1e7dc.ngrok.io',
-  route: '/webhook', //default : '/'
-  consumerKey: "RKoBdgHFyKWHoc12H7BavcHyk",
-  consumerSecret: "YzNCLE8hJ7KG6v0Hu4roFvBZaqDcxrqZyIP0GhLKLkakCcwdHY",
-  accessToken: '562217539-I6LNmUjUGoyKCRFbTDEFEMO3XB7Z6w3PkJrybeGZ',
-  accessTokenSecret: '5EvUKQ3fju2c304gri4wb6W6sbe4obIrseknjSE1bVeN4',
-  environment: 'dev', //default : 'env-beta'
-  app
-});
+// const userActivityWebhook = twitterWebhooks.userActivity({
+//   serverUrl: 'https://5dd1e7dc.ngrok.io',
+//   route: '/webhook', //default : '/'
+//   consumerKey: "RKoBdgHFyKWHoc12H7BavcHyk",
+//   consumerSecret: "YzNCLE8hJ7KG6v0Hu4roFvBZaqDcxrqZyIP0GhLKLkakCcwdHY",
+//   accessToken: '562217539-I6LNmUjUGoyKCRFbTDEFEMO3XB7Z6w3PkJrybeGZ',
+//   accessTokenSecret: '5EvUKQ3fju2c304gri4wb6W6sbe4obIrseknjSE1bVeN4',
+//   environment: 'dev', //default : 'env-beta'
+//   app
+// });
 
 // userActivityWebhook.register();
-async function getHooks() {
-  const hooks = await userActivityWebhook.getWebhooks()
-  console.log(hooks.environments[0].webhooks)
-}
-getHooks()
+// async function getHooks() {
+//   const hooks = await userActivityWebhook.getWebhooks()
+//   console.log(hooks.environments[0].webhooks)
+// }
+// getHooks()
 passport.use(new TwitterStrategy({
   consumerKey: "RKoBdgHFyKWHoc12H7BavcHyk",
   consumerSecret: "YzNCLE8hJ7KG6v0Hu4roFvBZaqDcxrqZyIP0GhLKLkakCcwdHY",
   callbackURL: "http://localhost:3001/login/callback"
 },
   function (token, tokenSecret, profile, cb) {
-    // console.log(token, tokenSecret, profile._json, cb)
-    const { id } = profile._json
-    subscribe(id, token, tokenSecret)
-    return cb(null, { token, tokenSecret, id })
+    console.log(profile._json)
+    const { id, screen_name } = profile._json
+    // subscribe(id, token, tokenSecret)
+    return cb(null, { token, tokenSecret, id, screen_name })
   }
 ));
 
@@ -77,26 +77,26 @@ passport.deserializeUser((user, done) => {
   done(null, user);
 });
 
-async function subscribe(userId, accessToken, accessTokenSecret) {
+// async function subscribe(userId, accessToken, accessTokenSecret) {
 
-  const userActivity = await userActivityWebhook.subscribe({
-    userId,
-    accessToken,
-    accessTokenSecret
-  })
+//   const userActivity = await userActivityWebhook.subscribe({
+//     userId,
+//     accessToken,
+//     accessTokenSecret
+//   })
 
-  // userActivity
-  //   .on('favorite', (data) => console.log(userActivity.id + ' - favorite'))
-  //   .on('tweet_create', (data) => console.log(userActivity.id + ' - tweet_create'))
-  //   .on('follow', (data) => console.log(userActivity.id + ' - follow'))
-  //   .on('mute', (data) => console.log(userActivity.id + ' - mute'))
-  //   .on('revoke', (data) => console.log(userActivity.id + ' - revoke'))
-  // .on('direct_message', (data) => console.log(userActivity.id + ' - direct_message'))
-  //   .on('direct_message_indicate_typing', (data) => console.log(userActivity.id + ' - direct_message_indicate_typing'))
-  //   .on('direct_message_mark_read', (data) => console.log(userActivity.id + ' - direct_message_mark_read'))
-  //   .on('tweet_delete', (data) => console.log(userActivity.id + ' - tweet_delete'))
+// userActivity
+//   .on('favorite', (data) => console.log(userActivity.id + ' - favorite'))
+//   .on('tweet_create', (data) => console.log(userActivity.id + ' - tweet_create'))
+//   .on('follow', (data) => console.log(userActivity.id + ' - follow'))
+//   .on('mute', (data) => console.log(userActivity.id + ' - mute'))
+//   .on('revoke', (data) => console.log(userActivity.id + ' - revoke'))
+// .on('direct_message', (data) => console.log(userActivity.id + ' - direct_message'))
+//   .on('direct_message_indicate_typing', (data) => console.log(userActivity.id + ' - direct_message_indicate_typing'))
+//   .on('direct_message_mark_read', (data) => console.log(userActivity.id + ' - direct_message_mark_read'))
+//   .on('tweet_delete', (data) => console.log(userActivity.id + ' - tweet_delete'))
 
-}
+// }
 
 io.on("connection", socket => {
   console.log("New client connected");
@@ -114,19 +114,49 @@ app.get('/login',
 
 app.get("/login/callback", passport.authenticate('twitter'), (req, res) => {
 
-  const { token, tokenSecret } = req.session.passport.user
+  const { token, tokenSecret, id, screen_name } = req.session.passport.user
+  console.log(id)
+  var stream = T.stream('statuses/filter', { track: "#ronaldo" })
+
+  stream.on('tweet', function (tweet) {
+    console.log("count")
+    io.emit("mention", tweet);
+  })
 
   res.redirect(`http://localhost:3000?&${token}&${tokenSecret}`)
 
 })
-userActivityWebhook.on('event', (event, userId, data) => {
-  console.log(data)
-  if (true) {
-    io.emit("mention", data);
 
-  }
-});
+// userActivityWebhook.on('event', (event, userId, data) => {
+//   console.log(data)
+//   if (true) {
+//     io.emit("mention", data);
+
+//   }
+// });
 // userActivityWebhook.on('unknown-event', (rawData) => console.log(rawData));
+
+var Twit = require('twit')
+
+var T = new Twit({
+  consumer_key: 'RKoBdgHFyKWHoc12H7BavcHyk',
+  consumer_secret: 'YzNCLE8hJ7KG6v0Hu4roFvBZaqDcxrqZyIP0GhLKLkakCcwdHY',
+  access_token: '562217539-I6LNmUjUGoyKCRFbTDEFEMO3XB7Z6w3PkJrybeGZ',
+  access_token_secret: '5EvUKQ3fju2c304gri4wb6W6sbe4obIrseknjSE1bVeN4',
+  // timeout_ms:           60*1000,  // optional HTTP request timeout to apply to all requests.
+  // strictSSL:            true,     // optional - requires SSL certificates to be valid.
+})
+
+
+
+
+
+
+
+
+
+
+
 
 server.listen(3001);
 // module.exports = app;

@@ -17,6 +17,7 @@
     "passport": "^0.4.1",
     "passport-twitter": "^1.0.4",
     "socket.io": "^2.3.0",
+    "twit": "^2.2.11",
     "twitter-webhooks": "^0.3.3"
   }
 }
