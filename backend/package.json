@@ -12,12 +12,10 @@
     "debug": "~2.6.9",
     "express": "~4.16.1",
     "express-session": "^1.17.1",
-    "https-localhost": "^4.5.3",
     "morgan": "~1.9.1",
     "passport": "^0.4.1",
     "passport-twitter": "^1.0.4",
     "socket.io": "^2.3.0",
     "twit": "^2.2.11",
-    "twitter-webhooks": "^0.3.3"
   }
 }

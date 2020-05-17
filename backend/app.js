@@ -8,16 +8,18 @@ const https = require("http")
 const server = https.createServer(app);
 var io = require('socket.io')(server)
 
-const twitterWebhooks = require('twitter-webhooks');
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
 
 const session = require("express-session")
 var passport = require("passport")
 const TwitterStrategy = require("passport-twitter").Strategy
 
-app.use(cors())
+app.use(cors(
+  {
+    origin: "http://localhost:3000",
+    credentials: true
+  }
+))
 
 app.use(logger('dev'));
 app.use(express.json());
@@ -38,33 +40,19 @@ app.use(
     rolling: true
   })
 );
-// const userActivityWebhook = twitterWebhooks.userActivity({
-//   serverUrl: 'https://5dd1e7dc.ngrok.io',
-//   route: '/webhook', //default : '/'
-//   consumerKey: "RKoBdgHFyKWHoc12H7BavcHyk",
-//   consumerSecret: "YzNCLE8hJ7KG6v0Hu4roFvBZaqDcxrqZyIP0GhLKLkakCcwdHY",
-//   accessToken: '562217539-I6LNmUjUGoyKCRFbTDEFEMO3XB7Z6w3PkJrybeGZ',
-//   accessTokenSecret: '5EvUKQ3fju2c304gri4wb6W6sbe4obIrseknjSE1bVeN4',
-//   environment: 'dev', //default : 'env-beta'
-//   app
-// });
 
-// userActivityWebhook.register();
-// async function getHooks() {
-//   const hooks = await userActivityWebhook.getWebhooks()
-//   console.log(hooks.environments[0].webhooks)
-// }
-// getHooks()
+
+
+// login to twitter
 passport.use(new TwitterStrategy({
-  consumerKey: "RKoBdgHFyKWHoc12H7BavcHyk",
-  consumerSecret: "YzNCLE8hJ7KG6v0Hu4roFvBZaqDcxrqZyIP0GhLKLkakCcwdHY",
+  consumerKey: process.env.consumerKey,
+  consumerSecret: process.env.consumerSecret,
   callbackURL: "http://localhost:3001/login/callback"
 },
   function (token, tokenSecret, profile, cb) {
     console.log(profile._json)
-    const { id, screen_name } = profile._json
-    // subscribe(id, token, tokenSecret)
-    return cb(null, { token, tokenSecret, id, screen_name })
+    const { id, screen_name, profile_image_url, name } = profile._json
+    return cb(null, { token, tokenSecret, id, screen_name, profile_image_url, name })
   }
 ));
 
@@ -77,85 +65,130 @@ passport.deserializeUser((user, done) => {
   done(null, user);
 });
 
-// async function subscribe(userId, accessToken, accessTokenSecret) {
 
-//   const userActivity = await userActivityWebhook.subscribe({
-//     userId,
-//     accessToken,
-//     accessTokenSecret
-//   })
 
-// userActivity
-//   .on('favorite', (data) => console.log(userActivity.id + ' - favorite'))
-//   .on('tweet_create', (data) => console.log(userActivity.id + ' - tweet_create'))
-//   .on('follow', (data) => console.log(userActivity.id + ' - follow'))
-//   .on('mute', (data) => console.log(userActivity.id + ' - mute'))
-//   .on('revoke', (data) => console.log(userActivity.id + ' - revoke'))
-// .on('direct_message', (data) => console.log(userActivity.id + ' - direct_message'))
-//   .on('direct_message_indicate_typing', (data) => console.log(userActivity.id + ' - direct_message_indicate_typing'))
-//   .on('direct_message_mark_read', (data) => console.log(userActivity.id + ' - direct_message_mark_read'))
-//   .on('tweet_delete', (data) => console.log(userActivity.id + ' - tweet_delete'))
-
-// }
-
+let interval
+let sessionTimeStart
 io.on("connection", socket => {
   console.log("New client connected");
+  if (interval) {
+    clearInterval(interval);
+  }
+  sessionTimeStart = new Date()
+  interval = setInterval(() => getApiAndEmit(socket), 1000);
+  socket.on("disconnect", () => {
+    console.log("Client disconnected");
+    clearInterval(interval);
+  });
 })
+const getApiAndEmit = socket => {
+  const response = new Date().getTime() - sessionTimeStart.getTime()
+  function time(ms) {
+    return new Date(ms).toISOString().slice(11, 19);
+  }
+
+  socket.emit("FromAPI", time(response));
+};
 
 app.use(passport.initialize())
 app.use(passport.session())
 
 app.get('/login',
   passport.authenticate('twitter'));
-// app.use('/', indexRouter);
-// app.use('/users', usersRouter);
 
 
 
-app.get("/login/callback", passport.authenticate('twitter'), (req, res) => {
 
-  const { token, tokenSecret, id, screen_name } = req.session.passport.user
+app.get("/login/callback", passport.authenticate('twitter'), async (req, res) => {
+
+  const { token, tokenSecret, id, screen_name, profile_image_url, name } = req.session.passport.user
   console.log(id)
-  var stream = T.stream('statuses/filter', { track: "#ronaldo" })
+  let T = getT(token, tokenSecret)
 
-  stream.on('tweet', function (tweet) {
-    console.log("count")
-    io.emit("mention", tweet);
+  var stream2 = T.stream("statuses/filter", { track: screen_name, follow: [id] })
+
+  stream2.on('tweet', function (data) {
+
+    if (data.user.screen_name !== screen_name) {
+      console.log("tweet", data.user.screen_name, screen_name)
+      io.emit("mention", data)
+    }
+    else {
+      console.log("follow")
+      io.emit("follow", data)
+    }
+
   })
 
-  res.redirect(`http://localhost:3000?&${token}&${tokenSecret}`)
+  res.redirect(`http://localhost:3000?&${token}&${tokenSecret}&${screen_name}&${profile_image_url}&${name}`)
 
 })
 
-// userActivityWebhook.on('event', (event, userId, data) => {
-//   console.log(data)
-//   if (true) {
-//     io.emit("mention", data);
 
-//   }
-// });
-// userActivityWebhook.on('unknown-event', (rawData) => console.log(rawData));
 
 var Twit = require('twit')
 
-var T = new Twit({
-  consumer_key: 'RKoBdgHFyKWHoc12H7BavcHyk',
-  consumer_secret: 'YzNCLE8hJ7KG6v0Hu4roFvBZaqDcxrqZyIP0GhLKLkakCcwdHY',
-  access_token: '562217539-I6LNmUjUGoyKCRFbTDEFEMO3XB7Z6w3PkJrybeGZ',
-  access_token_secret: '5EvUKQ3fju2c304gri4wb6W6sbe4obIrseknjSE1bVeN4',
-  // timeout_ms:           60*1000,  // optional HTTP request timeout to apply to all requests.
-  // strictSSL:            true,     // optional - requires SSL certificates to be valid.
+function getT(token, tokenSecret) {
+  return new Twit({
+    consumer_key: 'RKoBdgHFyKWHoc12H7BavcHyk',
+    consumer_secret: 'YzNCLE8hJ7KG6v0Hu4roFvBZaqDcxrqZyIP0GhLKLkakCcwdHY',
+    access_token: token,
+    access_token_secret: tokenSecret,
+
+  })
+
+}
+
+
+app.get("/mentions", async (req, res) => {
+  console.log("mentions")
+  try {
+
+    const { token, tokenSecret, id, screen_name } = req.session.passport.user
+    let T = getT(token, tokenSecret)
+    console.log(screen_name)
+    const mentions = await T.get(`statuses/mentions_timeline`)
+    const userStatuses = await T.get(`statuses/user_timeline`)
+    console.log(mentions.data, "mentions")
+    console.log("status", userStatuses.data)
+    res.send([...mentions.data, ...userStatuses.data])
+  }
+  catch (err) {
+    res.sendStatus(400)
+  }
+})
+
+app.post("/reply", async (req, res) => {
+  // console.log(reply)
+  const { token, tokenSecret, id, screen_name } = req.session.passport.user
+  const { status, in_reply_to_status_id } = req.body
+  let T = getT(token, tokenSecret)
+
+  const reply = await T.post("/statuses/update", { status, in_reply_to_status_id, auto_populate_reply_metadata: true })
+
+  res.send("done")
+
 })
 
 
 
+app.get("/replies/:id", async (req, res) => {
+  console.log("lookup")
+  const { token, tokenSecret, id, screen_name } = req.session.passport.user
+  let T = getT(token, tokenSecret)
+  const tweetId = req.params.id
+  const lookup = await T.get(`/search/tweets.json?q=@${id}`)
+  console.table(lookup.data)
+  console.log(lookup.data)
+  // res.send(lookup.data)
 
+})
 
-
-
-
-
-
+app.get("/logout", (req, res) => {
+  console.log("logout")
+  req.session.passport = null
+  res.send("logout")
+})
 
 
 server.listen(3001);
