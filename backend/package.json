@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "nodemon ./bin/www"
+    "start": "node app.js"
   },
   "dependencies": {
     "axios": "^0.19.2",
@@ -16,6 +16,6 @@
     "passport": "^0.4.1",
     "passport-twitter": "^1.0.4",
     "socket.io": "^2.3.0",
-    "twit": "^2.2.11",
+    "twit": "^2.2.11"
   }
 }

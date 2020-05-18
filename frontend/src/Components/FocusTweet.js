@@ -7,9 +7,9 @@ import uuid from "uuid/v4";
 export const FocusTweet = ({ centerData: tweet }) => {
   const [reply, setReply] = useState("")
   const handleSubmit = (e) => {
-    console.log("submit")
+    //console.log("submit")
     e.preventDefault()
-    axios.post("http://localhost:3001/reply", { status: reply, in_reply_to_status_id: tweet.id_str }, { withCredentials: true })
+    axios.post("https://twitterhdesk.herokuapp.com/reply", { status: reply, in_reply_to_status_id: tweet.id_str }, { withCredentials: true })
     setReply("")
   }
 

@@ -8,7 +8,7 @@ export default function Header({ sessionTime }) {
       <div className="ml-auto  col-3 " >
         <div className="row right-header justify-content-between">
 
-          <span className="mr-1 " >Session: {sessionTime}</span>
+          <span className="mr-1 " >Session: 34 mins</span>
           <span className=" " >User: {sessionStorage.getItem("name")}</span>
         </div>
       </div>

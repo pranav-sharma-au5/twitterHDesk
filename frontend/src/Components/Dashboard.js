@@ -8,7 +8,7 @@ import axios from "axios"
 import FocusTweet from './FocusTweet';
 import filterIcon from "./filterIcon.png";
 import uuid from "uuid/v4"
-const ENDPOINT = "http://localhost:3001";
+const ENDPOINT = "https://twitterhdesk.herokuapp.com";
 export function Dashboard({ user }) {
   const [response, setResponse] = useState([]);
   const [centerData, setCenterData] = useState({})
@@ -72,7 +72,7 @@ export function Dashboard({ user }) {
         }
         return oldTweets
       })
-      // console.log(centerData)
+      // //console.log(centerData)
 
 
 
@@ -86,15 +86,15 @@ export function Dashboard({ user }) {
     async function fetchData() {
       try {
 
-        const req = await axios.get("http://localhost:3001/mentions", { withCredentials: true })
+        const req = await axios.get("https://twitterhdesk.herokuapp.com/mentions", { withCredentials: true })
         let mentions = req.data
-        console.log(mentions)
+        //console.log(mentions)
 
         mentions.sort(function (a, b) {
           // sort according to dates so that the replies can be tracked
           return new Date(b.created_at) - new Date(a.created_at);
         });
-        console.table(JSON.parse(JSON.stringify(mentions)))
+        // console.table(JSON.parse(JSON.stringify(mentions)))
 
         for (let i = 0; i < mentions.length - 1; i++) {
           let temp = mentions[i]
@@ -111,11 +111,12 @@ export function Dashboard({ user }) {
           }
         }
 
-        // console.log(mentions)
+        // //console.log(mentions)
         mentions = mentions.filter(el => el.replies || el.user.screen_name !== sessionStorage.getItem("screen_name"))
         setCenterData(mentions[0])
         setOld(mentions)
       } catch (error) {
+        // console.log(error)
         window.location.href = "/"
       }
     }

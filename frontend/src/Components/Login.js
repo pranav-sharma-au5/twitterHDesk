@@ -9,7 +9,7 @@ export class Login extends Component {
   componentDidMount() {
     const { location } = this.props
 
-    // const req = axios.get("https://localhost:3001/id")
+    // const req = axios.get("https://twitterhdesk.herokuapp.com/id")
     const [, token, tokenSecret, screen_name, profile_image_url, name] = location.search.split('&')
     this.props.setUser({ token, tokenSecret, screen_name, profile_image_url, name })
     sessionStorage.setItem("token", token)
@@ -48,7 +48,7 @@ export class Login extends Component {
               </div>
               <div className="row mt-5 justify-content-center ">
 
-                <a className="btn btn-primary" href="http://localhost:3001/login" > Login Via Twitter</a>
+                <a className="btn btn-primary" href="https://twitterhdesk.herokuapp.com/login" > Login Via Twitter</a>
 
               </div>
             </div>

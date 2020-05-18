@@ -13,7 +13,7 @@ import axios from "axios"
 
 export const Navbar = () => {
   const handleLogout = () => {
-    axios.get("http://localhost:3001/logout")
+    axios.get("https://twitterhdesk.herokuapp.com/logout")
   }
   return (
     <nav className="position-relative twit-navbar " >
